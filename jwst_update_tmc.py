@@ -218,7 +218,7 @@ def check_dup_comp_values(all_files):
             comp_with_filenames[hdulist[0].header["COMPNAME"]] = f
         else:
             print ("ERROR: {} and {} have same COMPNAME values, exiting program".format(f, comp_with_filenames[hdulist[0].header["COMPNAME"]]))
-            #sys.exit()
+            sys.exit()
     return all_files_new
 
 def check_valid_values(hdulist):
