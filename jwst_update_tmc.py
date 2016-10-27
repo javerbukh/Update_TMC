@@ -121,6 +121,10 @@ filename_to_ev = {
 }
 
 def check_filename(filename):
+    """
+    Uses the dictionary filename_to_ev to prepend a descriptive string to each
+    filename, which states it's directory of origin, and returns the new filename
+    """
     checker = False
     for k,v in filename_to_ev.iteritems():
         if re.search(k,filename) != None:
@@ -131,7 +135,77 @@ def check_filename(filename):
         print ("Path for {} not found, not able to prepend Environmental Variable to filename".format(filename))
         return filename
 
+def get_all_files():
+    """
+    Gets all files from the pandeia directory, as well as all of its subdirectories.
+    This then returns 4 arrays, one for each of the following attributes: time of
+    access, file's compname, file's name, and the DESCRIP of the file
+    """
+    time_array = []
+    compname = []
+    filename_array = []
+    comment = []
+
+    all_files = {}
+    all_instruments = ["miri/","nircam/","niriss/","nirspec/","telescope"]
+    all_sub_dirs = ["blaze/","detector/","dispersion/","filters/","optical/","psfs/","qe/","wavepix/","xtras/"]
+    old_directory = "/grp/hst/cdbs/work/jwst/delivery/pandeia/"
+    for instr_dir in all_instruments:
+        for instr_sub_dir in all_sub_dirs:
+            directory = old_directory + instr_dir + instr_sub_dir
+            print (directory)
+            if os.path.isdir(directory) or os.path.exists(directory):
+                for filename in os.listdir(directory):
+                    if filename.endswith(".fits") and filename != "testing_file.fits":
+                        new_path = str(os.path.join(directory, filename))
+                        all_files[new_path] = filename
+    all_files = check_dup_comp_values(all_files)
+    for df, f in all_files.iteritems():
+        print ("-------------------------------------------------------------")
+        print ("Checking {}".format(f))
+
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
+        time_array.append(temp_time)
+        compname.append(temp_compname)
+        filename_array.append(temp_filename)
+        comment.append(temp_comment)
+
+    return (time_array, compname, filename_array, comment)
+
+def get_all_files_chosen_dir(directory):
+    """
+    Gets all files from the pandeia directory, as well as all of its subdirectories.
+    This then returns 4 arrays, one for each of the following attributes: time of
+    access, file's compname, file's name, and the DESCRIP of the file
+    """
+    time_array = []
+    compname = []
+    filename_array = []
+    comment = []
+
+    all_files = {}
+    if os.path.isdir(directory) or os.path.exists(directory):
+        for filename in os.listdir(directory):
+            if filename.endswith(".fits"):
+                new_path = str(os.path.join(directory, filename))
+                all_files[new_path] = filename
+    all_files = check_dup_comp_values(all_files)
+    for df, f in all_files.iteritems():
+        print ("-------------------------------------------------------------")
+        print ("Checking {}".format(f))
+
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
+        time_array.append(temp_time)
+        compname.append(temp_compname)
+        filename_array.append(temp_filename)
+        comment.append(temp_comment)
+
+    return (time_array, compname, filename_array, comment)
+
 def check_dup_comp_values(all_files):
+    """
+    Checks to see if anyfiles within a certain directory contain duplicate COMPNAMEs
+    """
     all_files_new = {}
     comp_with_filenames = {}
     for df,f in all_files.iteritems():
@@ -139,10 +213,6 @@ def check_dup_comp_values(all_files):
         if "COMPNAME" not in hdulist[0].header:
             print ("ERROR: COMPNAME not found in {}, exiting program".format(f))
             sys.exit()
-            #Do not copy into new directory
-            #COMPNAME not found in this file, sys.exit
-            #Change filename length to 80
-            pass
         elif hdulist[0].header["COMPNAME"] not in comp_with_filenames:
             all_files_new[df] = f
             comp_with_filenames[hdulist[0].header["COMPNAME"]] = f
@@ -187,35 +257,21 @@ def check_valid_values(hdulist):
     thdulist.writeto("testing_file2.fits", clobber = True)
     #hdulist.writeto("testing_file.fits", clobber = True)
 
-def update_file(hdulist, is_test, time_array, compname_array, filename_array, comment):
-    #file_hdu = fits.open(input_files_dir)
+def update_file(hdulist, writeto_file, is_test, time_array, compname_array, filename_array, comment):
+    """
+    Takes the 4 arrays created earlier and adds them to the new JWST_TMC file
+    """
     test = False
     if is_test == "y":
         test = True
 
     compname = hdulist[0].header["COMPNAME"]
-#####################LOOK HERE
-# Need to figure out why you aren't able to append new compnames
-# Why is it not getting to the else statement bellow?
     tbdata = hdulist[1].data
-    #print (tbdata["COMPNAME"])
-    #print ("adding")
+
     today = date.today()
     new_useafter = time.strftime("%b %d %Y") + " " + time.strftime("%H:%M:%S")
     hdulist[0].header["USEAFTER"] = new_useafter
-    ############################################################################
-    # print (len(filename))
-    # print (len(tbdata['FILENAME']))
-    # tbdata['TIME'].reshape = len(time_array)
-    # tbdata['TIME'] = np.asarray(time_array)
-    # tbdata['COMPNAME'].size(len(compname))
-    # tbdata['COMPNAME'] = np.asarray(time_array)
-    # tbdata['FILENAME'] = size(len(filename))
-    # tbdata['FILENAME'] = np.asarray(filename)
-    # tbdata['COMMENT'] = size(len(comment))
-    # tbdata['COMMENT'] = np.asarray(comment)
-    ############################################################################
-    print (len(time_array), len(compname_array), len(filename_array), len(comment))
+
     col1= fits.Column(name='TIME', format='26A', array=time_array,
         disp='26A')
     col2= fits.Column(name='COMPNAME', format='18A', array=compname_array,
@@ -228,18 +284,6 @@ def update_file(hdulist, is_test, time_array, compname_array, filename_array, co
     cols = fits.ColDefs([col1,col2,col3,col4])
     tbhdu = fits.BinTableHDU.from_columns(cols)
 
-    ############################################################################
-    # tbdata['TIME'] = np.append(new_useafter, tbdata['TIME'])
-    # tbdata['COMPNAME'] = np.append(file_hdu[0].header["COMPNAME"], tbdata['COMPNAME'])
-    # tbdata['FILENAME'] = np.append(check_filename(input_files_name), tbdata['FILENAME'])
-    # tbdata['COMMENT'] = np.append(file_hdu[0].header["DESCRIP"], tbdata['COMMENT'])
-
-    # print (tbdata["FILENAME"])
-    print (len(tbdata["FILENAME"]))
-    # print (tbdata["TIME"])
-    # print (tbdata["COMPNAME"])
-    # print (tbdata["COMMENT"])
-
     if not test:
         username = raw_input("Please input your name: ")
         reason_for_change = raw_input("Please state the reason for this update: ")
@@ -249,11 +293,15 @@ def update_file(hdulist, is_test, time_array, compname_array, filename_array, co
         hdulist[0].header["HISTORY"] = reason_for_change
 
     thdulist = fits.HDUList([hdulist[0],tbhdu])
-    thdulist.writeto("testing_file2.fits", clobber = True)
-    #hdulist.writeto("testing_file2.fits", clobber = True)
-    print ("TMC file has created a new COMPNAME and has been updated with information from {}".format(input_files_name))
+    thdulist.writeto(writeto_file, clobber = True)
+    print ("A new TMC file {} has been created with data up-to-date as of {}".format("testing_file2.fits",new_useafter))
 
 def update_columns(input_files_dir, input_files_name):
+    """
+    As the files are looped through, this method extracts information from the file,
+    such as its COMPNAME, filename and DESCRIP, as well as the date and time this
+    file was accessed
+    """
     file_hdu = fits.open(input_files_dir)
     files_compname = file_hdu[0].header["COMPNAME"]
 
@@ -262,70 +310,19 @@ def update_columns(input_files_dir, input_files_name):
     hdulist[0].header["USEAFTER"] = new_useafter
 
     return (new_useafter, file_hdu[0].header["COMPNAME"], check_filename(input_files_name), file_hdu[0].header["DESCRIP"])
-    #print (type(tbdata['FILENAME']))
-    #compname_index_find = tbdata['COMPNAME'].find(files_compname)
-    #testing_index = tbdata['COMPNAME'].find("acs_block1")
-    #print ("testing_index: {}".format(testing_index))
-    #print (compname_index_find)
-    #compname_index = np.where(compname_index_find > -1)
-    #print ("Index of where compname is: {}, {}".format(compname_index, files_compname))
-    #print (len(compname_index), compname_index)
-    # if files_compname in compname:
-    #     today = date.today()
-    #     new_useafter = time.strftime("%b %d %Y") + " " + time.strftime("%H:%M:%S")
-    #     hdulist[0].header["USEAFTER"] = new_useafter
-    #
-    #     tbdata['TIME'][compname_index] = new_useafter
-    #     #tbdata['COMPNAME'][compname_index] = file_hdu[0].header["COMPNAME"]
-    #     tbdata['FILENAME'][compname_index] = check_filename(input_files_name)
-    #     tbdata['COMMENT'][compname_index] = file_hdu[0].header["DESCRIP"]
-    #
-    #     # print (tbdata["FILENAME"])
-    #     print (len(tbdata["FILENAME"]))
-    #     # print (tbdata["TIME"])
-    #     # print (tbdata["COMPNAME"])
-    #     # print (tbdata["COMMENT"])
-    #
-    #     if not test:
-    #         username = raw_input("Please input your name: ")
-    #         reason_for_change = raw_input("Please state the reason for this update: ")
-    #         if username == "":
-    #             username = getpass.getuser()
-    #         hdulist[0].header["AUTHOR"] = username
-    #         hdulist[0].header["HISTORY"] = reason_for_change
-    #
-    #     hdulist.writeto("testing_file2.fits", clobber = True)
-    #     print ("TMC file has been updated with information from {}".format(input_files_name))
-    #else:
 
+################################################################################
+# Main
+################################################################################
 
+parser = argparse.ArgumentParser()
+parser.add_argument("chosen_directory", help="the directory of fits files to be run (type default for pandeia directories)")
+parser.add_argument("old_tmc", help="the old tmc file")
+parser.add_argument("new_tmc", help="the newer tmc file")
+args = parser.parse_args()
 
+hdulist = fits.open(args.old_tmc)
 
-hdulist = fits.open("0661429jm_tmc.fits")
-hdulist2 = fits.open("testing_file2.fits")
-input_files_name = "jwst_nircam_h2rg_ipckernel_20160902164019.fits"
-hdulist3 = fits.open("jwst_nircam_h2rg_ipckernel_20160902164019.fits")
-
-hdulist2[0].header["COMPNAME"] = "acs_block1"
-
-hdulist2.writeto("0661429jm_tmc.fits", clobber=True)
-#print (hdulist.info())
-
-#print (hdulist[0].header)
-#check_valid_values(hdulist)
-#update_file(hdulist2, input_files_name)
-
-
-# print (hdulist3[0].header)
-# print (hdulist3[1].header)
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("chosen_directory", help="the directory of fits files to be run")
-# args = parser.parse_args()
-#
-# directory = args.chosen_directory
-#directory = "/grp/crds/jwst/references/jwst/"
-#irectory = "/user/rmiller/CDBS/testfile"
 time_array = []
 compname = []
 filename_array = []
@@ -333,33 +330,12 @@ comment = []
 
 is_test = raw_input("Is this a test? (y/n)")
 
-all_files = {}
-all_instruments = ["miri/","nircam/","niriss/","nirspec/","telescope"]
-all_sub_dirs = ["blaze/","detector/","dispersion/","filters/","optical/","psfs/","qe/","wavepix/","xtras/"]
-old_directory = "/grp/hst/cdbs/work/jwst/delivery/pandeia/"
-for instr_dir in all_instruments:
-    for instr_sub_dir in all_sub_dirs:
-        directory = old_directory + instr_dir + instr_sub_dir
-        print (directory)
-        if os.path.isdir(directory) or os.path.exists(directory):
-            for filename in os.listdir(directory):
-                if filename.endswith(".fits") and filename != "testing_file.fits":
-                    new_path = str(os.path.join(directory, filename))
-                    all_files[new_path] = filename
-all_files = check_dup_comp_values(all_files)
-for df, f in all_files.iteritems():
-    print ("-------------------------------------------------------------")
-    print ("Checking {}".format(f))
+if args.chosen_directory == "default":
+    (time_array, compname, filename_array, comment) = get_all_files()
+else:
+    (time_array, compname, filename_array, comment) = get_all_files(args.chosen_directory)
 
-    (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
-    time_array.append(temp_time)
-    compname.append(temp_compname)
-    filename_array.append(temp_filename)
-    comment.append(temp_comment)
-# print (hdulist3[0].header)
-# print (hdulist3[1].header)
-update_file(hdulist2, is_test, time_array, compname, filename_array, comment)
+update_file(hdulist, args.new_tmc, is_test, time_array, compname, filename_array, comment)
 
-print (compname)
-print (hdulist2[0].header)
-print (hdulist2[1].header)
+print (hdulist[0].header)
+print (hdulist[1].header)
