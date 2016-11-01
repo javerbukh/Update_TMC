@@ -7,129 +7,22 @@ import getpass
 import sys
 import numpy as np
 import re
+import jwst_update_dict
+from shutil import copyfile
 
-filename_to_ev = {
-    #jwst nircam blaze
-    'jwst_nircam_speceff':'crnircamblaze',
-    #jwst nircam detector
-    'jwst_nircam_h2rg_ipckernel':'crnircamdet',
-    #jwst nircam dispersion
-    'jwst_nircam_disp':'crnircamdisp',
-    #jwst nircam filter
-    'jwst_nircam_f070w_trans':'crnircamfilt',
-    'jwst_nircam_f090w_trans':'crnircamfilt',
-    'jwst_nircam_f115w_trans':'crnircamfilt',
-    'jwst_nircam_f140m_trans':'crnircamfilt',
-    'jwst_nircam_f150w2_trans':'crnircamfilt',
-    'jwst_nircam_f150w_trans':'crnircamfilt',
-    'jwst_nircam_f162m_trans':'crnircamfilt',
-    'jwst_nircam_f164n_trans':'crnircamfilt',
-    'jwst_nircam_f182m_trans':'crnircamfilt',
-    'jwst_nircam_f187n_trans':'crnircamfilt',
-    'jwst_nircam_f200w_trans':'crnircamfilt',
-    'jwst_nircam_f210m_trans':'crnircamfilt',
-    'jwst_nircam_f212n_trans':'crnircamfilt',
-    'jwst_nircam_f250m_trans':'crnircamfilt',
-    'jwst_nircam_f277w_trans':'crnircamfilt',
-    'jwst_nircam_f300m_trans':'crnircamfilt',
-    'jwst_nircam_f322w2_trans':'crnircamfilt',
-    'jwst_nircam_f323n_trans':'crnircamfilt',
-    'jwst_nircam_f335m_trans':'crnircamfilt',
-    'jwst_nircam_f356w_trans':'crnircamfilt',
-    'jwst_nircam_f360m_trans':'crnircamfilt',
-    'jwst_nircam_f405n_trans':'crnircamfilt',
-    'jwst_nircam_f410m_trans':'crnircamfilt',
-    'jwst_nircam_f430m_trans':'crnircamfilt',
-    'jwst_nircam_f444w_trans':'crnircamfilt',
-    'jwst_nircam_f460m_trans':'crnircamfilt',
-    'jwst_nircam_f466n_trans':'crnircamfilt',
-    'jwst_nircam_f470n_trans':'crnircamfilt',
-    'jwst_nircam_f480m_trans ':'crnircamfilt',
-    'jwst_nircam_lw-lyot_trans_modmean':'crnircamfilt',
-    'jwst_nircam_moda_com_substrate_trans':'crnircamfilt',
-    'jwst_nircam_sw-lyot_trans_modmean':'crnircamfilt',
-    #'jwst_nircam_optical'
-    'jwst_nircam_internaloptics_throughput':'crnircamopt',
-    'jwst_nircam_lw-lyot_trans_modmean':'crnircamopt',
-    'jwst_nircam_lw_dbs':'crnircamopt',
-    'jwst_nircam_moda_com_substrate_trans':'crnircamopt',
-    'jwst_nircam_sw-lyot_trans_modmean':'crnircamopt',
-    'jwst_nircam_sw_dbs':'crnircamopt',
-    'jwst_nircam_wlp4':'crnircamopt',
-    'jwst_nircam_wlp8':'crnircamopt',
-    #'jwst_nircam_psfs' #none
-    #'jwst_nircam_qe' #too many
-    #jwst_niriss_blaze
-    'jwst_niriss_gr150c-ordm1_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150c-ordp2_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150c-ordp3_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150r-ordm1_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150r-ordp1_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150r-ordp2_speceff': 'crnirissblaze',
-    'jwst_niriss_gr150r-ordp3_speceff': 'crnirissblaze',
-    'jwst_niriss_gr700xd-ord1_speceff': 'crnirissblaze',
-    'jwst_niriss_gr700xd-ord2_speceff': 'crnirissblaze',
-    'jwst_niriss_gr700xd-ord3_speceff': 'crnirissblaze',
-    #jwst niriss dispersion
-    'jwst_niriss_gr150c-ordm1_disp':'crnirissdet',
-    'jwst_niriss_gr150c-ordp1_disp':'crnirissdet',
-    'jwst_niriss_gr150c-ordp2_disp':'crnirissdet',
-    'jwst_niriss_gr150c-ordp3_disp':'crnirissdet',
-    'jwst_niriss_gr150r-ordm1_disp':'crnirissdet',
-    'jwst_niriss_gr150r-ordp1_disp':'crnirissdet',
-    'jwst_niriss_gr150r-ordp2_disp':'crnirissdet',
-    'jwst_niriss_gr150r-ordp3_disp':'crnirissdet',
-    'jwst_niriss_gr700xd-ord1_disp':'crnirissdet',
-    'jwst_niriss_gr700xd-ord2_disp':'crnirissdet',
-    'jwst_niriss_gr700xd-ord3_disp':'crnirissdet',
-    #jwst niriss filters
-    'jwst_niriss_f090w_trans':'crnirissdisp',
-    'jwst_niriss_f115w_trans':'crnirissdisp',
-    'jwst_niriss_f140m_trans':'crnirissdisp',
-    'jwst_niriss_f150w_trans':'crnirissdisp',
-    'jwst_niriss_f158m_trans':'crnirissdisp',
-    'jwst_niriss_f200w_trans':'crnirissdisp',
-    'jwst_niriss_f277w_trans':'crnirissdisp',
-    'jwst_niriss_f356w_trans':'crnirissdisp',
-    'jwst_niriss_f380m_trans':'crnirissdisp',
-    'jwst_niriss_f430m_trans':'crnirissdisp',
-    'jwst_niriss_f444w_trans':'crnirissdisp',
-    'jwst_niriss_f480m_trans':'crnirissdisp',
-    'jwst_niriss_nrm_trans':'crnirissdisp',
-    #jwst niriss masks
-    'jwst_niriss_soss-256-ord1_mask':'crnirissfilt',
-    'jwst_niriss_soss-256-ord2_mask':'crnirissfilt',
-    'jwst_niriss_soss-256-ord3_mask':'crnirissfilt',
-    'jwst_niriss_soss-96-ord1_mask':'crnirissfilt',
-    #jwsy niriss optical
-    'jwst_niriss_internaloptics-clear_throughput':'crnirissopt',
-    'jwst_niriss_internaloptics-clearp_throughput':'crnirissopt',
-    'jwst_niriss_internaloptics_throughput':'crnirissopt',
-    #'jwst_niriss_psfs' #None
-    #jwst niriss qe
-    'jwst_niriss_h2rg_qe':'crnirissqe',
-    #jwst niriss wavepix
-    'jwst_niriss_soss-256-ord1_trace':'crniriswave',
-    'jwst_niriss_soss-256-ord2_trace':'crniriswave',
-    'jwst_niriss_soss-256-ord3_trace':'crniriswave',
-    'jwst_niriss_soss-96-ord1_trace':'crniriswave',
-    'jwst_niriss_soss-96-ord2_trace':'crniriswave',
-    'jwst_niriss_soss-96-ord3_trace':'crniriswave',
-    #jwst niriss xtras #None
-    #jwst telescope
-    'jwst_telescope':'cttelescope'
-}
-
-def check_filename(filename):
+def check_filename(directory, filename):
     """
     Uses the dictionary filename_to_ev to prepend a descriptive string to each
     filename, which states it's directory of origin, and returns the new filename
     """
     checker = False
-    for k,v in filename_to_ev.iteritems():
+    for k,v in jwst_update_dict.filename_to_ev.iteritems():
         if re.search(k,filename) != None:
             checker = True
             new_filename = v + "$" + filename
+            if directory != "default":
+                os.remove((directory+k+"*"))
+                copyfile((directory+new_filename), jwst_update_dict.file_to_pandeia[k])
             return new_filename
     if not checker:
         print ("Path for {} not found, not able to prepend Environmental Variable to filename".format(filename))
@@ -156,7 +49,7 @@ def get_all_files():
             print (directory)
             if os.path.isdir(directory) or os.path.exists(directory):
                 for filename in os.listdir(directory):
-                    if filename.endswith(".fits") and filename != "testing_file.fits":
+                    if filename.endswith(".fits"):
                         new_path = str(os.path.join(directory, filename))
                         all_files[new_path] = filename
     all_files = check_dup_comp_values(all_files)
@@ -164,7 +57,7 @@ def get_all_files():
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
 
-        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f, "default")
         time_array.append(temp_time)
         compname.append(temp_compname)
         filename_array.append(temp_filename)
@@ -194,7 +87,7 @@ def get_all_files_chosen_dir(directory):
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
 
-        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f, "non_default")
         time_array.append(temp_time)
         compname.append(temp_compname)
         filename_array.append(temp_filename)
@@ -265,7 +158,6 @@ def update_file(hdulist, writeto_file, is_test, time_array, compname_array, file
     if is_test == "y":
         test = True
 
-    compname = hdulist[0].header["COMPNAME"]
     tbdata = hdulist[1].data
 
     today = date.today()
@@ -296,7 +188,7 @@ def update_file(hdulist, writeto_file, is_test, time_array, compname_array, file
     thdulist.writeto(writeto_file, clobber = True)
     print ("A new TMC file {} has been created with data up-to-date as of {}".format("testing_file2.fits",new_useafter))
 
-def update_columns(input_files_dir, input_files_name):
+def update_columns(input_files_dir, input_files_name, is_default):
     """
     As the files are looped through, this method extracts information from the file,
     such as its COMPNAME, filename and DESCRIP, as well as the date and time this
@@ -309,7 +201,10 @@ def update_columns(input_files_dir, input_files_name):
     new_useafter = time.strftime("%b %d %Y") + " " + time.strftime("%H:%M:%S")
     hdulist[0].header["USEAFTER"] = new_useafter
 
-    return (new_useafter, file_hdu[0].header["COMPNAME"], check_filename(input_files_name), file_hdu[0].header["DESCRIP"])
+    if is_default == "non_default":
+        return (new_useafter, file_hdu[0].header["COMPNAME"].lower(), check_filename(input_files_dir, input_files_name), file_hdu[0].header["DESCRIP"])
+    else:
+        return (new_useafter, file_hdu[0].header["COMPNAME"].lower(), check_filename("default", input_files_name), file_hdu[0].header["DESCRIP"])
 
 ################################################################################
 # Main
@@ -333,7 +228,7 @@ is_test = raw_input("Is this a test? (y/n)")
 if args.chosen_directory == "default":
     (time_array, compname, filename_array, comment) = get_all_files()
 else:
-    (time_array, compname, filename_array, comment) = get_all_files(args.chosen_directory)
+    (time_array, compname, filename_array, comment) = get_all_files_chosen_dir(args.chosen_directory)
 
 update_file(hdulist, args.new_tmc, is_test, time_array, compname, filename_array, comment)
 
