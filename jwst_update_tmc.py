@@ -53,6 +53,10 @@ def get_all_files():
                         new_path = str(os.path.join(directory, filename))
                         all_files[new_path] = filename
     all_files = check_dup_comp_values(all_files)
+    print (all_files)
+    new_all_files = sorted(all_files, key=all_files.__getitem__)
+    #print (new_all_files)
+    print (new_all_files)
     for df, f in all_files.iteritems():
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
@@ -111,7 +115,7 @@ def check_dup_comp_values(all_files):
             comp_with_filenames[hdulist[0].header["COMPNAME"]] = f
         else:
             print ("ERROR: {} and {} have same COMPNAME values, exiting program".format(f, comp_with_filenames[hdulist[0].header["COMPNAME"]]))
-            sys.exit()
+            #sys.exit()
     return all_files_new
 
 def check_valid_values(hdulist):
