@@ -9,6 +9,7 @@ import numpy as np
 import re
 import jwst_update_dict
 from shutil import copyfile
+import operator
 
 def check_filename(directory, filename):
     """
@@ -21,7 +22,7 @@ def check_filename(directory, filename):
             checker = True
             new_filename = v + "$" + filename
             if directory != "default":
-                os.remove((directory+k+"*"))
+                os.remove((directory+"*"+k+"*"))
                 copyfile((directory+new_filename), jwst_update_dict.file_to_pandeia[k])
             return new_filename
     if not checker:
@@ -45,7 +46,10 @@ def get_all_files():
     old_directory = "/grp/hst/cdbs/work/jwst/delivery/pandeia/"
     for instr_dir in all_instruments:
         for instr_sub_dir in all_sub_dirs:
-            directory = old_directory + instr_dir + instr_sub_dir
+            if instr_dir != "telescope":
+                directory = old_directory + instr_dir + instr_sub_dir
+            else:
+                directory = old_directory + instr_dir
             print (directory)
             if os.path.isdir(directory) or os.path.exists(directory):
                 for filename in os.listdir(directory):
@@ -53,11 +57,9 @@ def get_all_files():
                         new_path = str(os.path.join(directory, filename))
                         all_files[new_path] = filename
     all_files = check_dup_comp_values(all_files)
-    print (all_files)
-    new_all_files = sorted(all_files, key=all_files.__getitem__)
-    #print (new_all_files)
-    print (new_all_files)
-    for df, f in all_files.iteritems():
+    new_all_files = sorted(all_files.items(), key=operator.itemgetter(1))
+
+    for df, f in new_all_files:
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
 
@@ -115,7 +117,7 @@ def check_dup_comp_values(all_files):
             comp_with_filenames[hdulist[0].header["COMPNAME"]] = f
         else:
             print ("ERROR: {} and {} have same COMPNAME values, exiting program".format(f, comp_with_filenames[hdulist[0].header["COMPNAME"]]))
-            #sys.exit()
+            sys.exit()
     return all_files_new
 
 def check_valid_values(hdulist):
@@ -132,9 +134,8 @@ def check_valid_values(hdulist):
             else:
                 hdulist[0].header[key] = value
         else:
-            #hdulist[0].header += str(key)
             hdulist[0].header[key] = value
-    #tbdata = hdulist[1].data
+
     time=[]
     compname=[]
     filename=[]
