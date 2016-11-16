@@ -22,7 +22,9 @@ def check_filename(directory, filename):
             checker = True
             new_filename = v + "$" + filename
             if directory != "default":
-                os.remove((directory+"*"+k+"*"))
+                for filename in os.listdir(jwst_update_dict.file_to_pandeia[k]):
+                    if filename.endswith(".fits") and re.search(k,filename):
+                            os.remove((directory+filename))
                 copyfile((directory+new_filename), jwst_update_dict.file_to_pandeia[k])
             return new_filename
     if not checker:
