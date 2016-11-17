@@ -60,7 +60,7 @@ def get_all_files():
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
 
-        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f, "default")
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
         time_array.append(temp_time)
         compname.append(temp_compname)
         filename_array.append(temp_filename)
@@ -90,7 +90,7 @@ def get_all_files_chosen_dir(directory):
         print ("-------------------------------------------------------------")
         print ("Checking {}".format(f))
 
-        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f, "non_default")
+        (temp_time, temp_compname, temp_filename, temp_comment) = update_columns(df, f)
         time_array.append(temp_time)
         compname.append(temp_compname)
         filename_array.append(temp_filename)
@@ -190,7 +190,7 @@ def update_file(hdulist, writeto_file, is_test, time_array, compname_array, file
     thdulist.writeto(writeto_file, clobber = True)
     print ("A new TMC file {} has been created with data up-to-date as of {}".format("testing_file2.fits",new_useafter))
 
-def update_columns(input_files_dir, input_files_name, is_default):
+def update_columns(input_files_dir, input_files_name):
     """
     As the files are looped through, this method extracts information from the file,
     such as its COMPNAME, filename and DESCRIP, as well as the date and time this
