@@ -11,7 +11,7 @@ import jwst_update_dict
 from shutil import copyfile
 import operator
 
-def check_filename(directory, filename):
+def check_filename(filename):
     """
     Uses the dictionary filename_to_ev to prepend a descriptive string to each
     filename, which states it's directory of origin, and returns the new filename
@@ -21,11 +21,6 @@ def check_filename(directory, filename):
         if re.search(k,filename) != None:
             checker = True
             new_filename = v + "$" + filename
-            if directory != "default":
-                for filename in os.listdir(jwst_update_dict.file_to_pandeia[k]):
-                    if filename.endswith(".fits") and re.search(k,filename):
-                            os.remove((directory+filename))
-                copyfile((directory+new_filename), jwst_update_dict.file_to_pandeia[k])
             return new_filename
     if not checker:
         print ("Path for {} not found, not able to prepend Environmental Variable to filename".format(filename))
@@ -208,10 +203,7 @@ def update_columns(input_files_dir, input_files_name, is_default):
     new_useafter = time.strftime("%b %d %Y") + " " + time.strftime("%H:%M:%S")
     hdulist[0].header["USEAFTER"] = new_useafter
 
-    if is_default == "non_default":
-        return (new_useafter, file_hdu[0].header["COMPNAME"].lower(), check_filename(input_files_dir, input_files_name), file_hdu[0].header["DESCRIP"])
-    else:
-        return (new_useafter, file_hdu[0].header["COMPNAME"].lower(), check_filename("default", input_files_name), file_hdu[0].header["DESCRIP"])
+    return (new_useafter, file_hdu[0].header["COMPNAME"].lower(), check_filename(input_files_name), file_hdu[0].header["DESCRIP"])
 
 ################################################################################
 # Main
