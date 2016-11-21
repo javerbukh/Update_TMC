@@ -23,6 +23,9 @@ def change_access_date(directory):
             #hdulist.writeto(new_path, clobber=True)
 
 def send_files_to_new_directory(new_file, input_directory, dest_directory):
+    if get_date(new_file) == False:
+        print ("Time stamp not present in filename of {}".format(new_file))
+        return False
     all_instruments = ["miri/","nircam/","niriss/","nirspec/","telescope"]
     all_sub_dirs = ["blaze/","detector/","dispersion/","filters/","optical/","psfs/","qe/","wavepix/","xtras/"]
     #old_directory = "/grp/hst/cdbs/work/jwst/delivery/pandeia/"
@@ -40,29 +43,44 @@ def send_files_to_new_directory(new_file, input_directory, dest_directory):
                         old_hdu = fits.open(old_path)
                         new_path = input_directory + new_file
                         new_hdu = fits.open(new_path)
-                        print ("New file: {}, old file: {}".format(new_hdu[0].header["DATE"], old_hdu[0].header["DATE"]))
-                        if new_hdu[0].header["DATE"] > old_hdu[0].header["DATE"]:
+                        get_date(new_file)
+                        #print ("New file: {}, old file: {}".format(new_hdu[0].header["DATE"], old_hdu[0].header["DATE"]))
+                        #if new_hdu[0].header["DATE"] > old_hdu[0].header["DATE"]:
+                        if get_date(new_file) > get_date(filename):
                             print ("File {} was moved to the Pandeia directory".format(new_file))
                             print (old_path)
                             print (new_path)
                             os.remove(old_path)
                             copy(new_path, directory)
-                            pass
-                        elif new_hdu[0].header["DATE"] == old_hdu[0].header["DATE"]:
-                            print ("WARNING: File {} has the same DATE as {}, no changes made".format(new_file, old_path))
+                        #elif new_hdu[0].header["DATE"] == old_hdu[0].header["DATE"]:
+                            #print ("WARNING: File {} has the same DATE as {}, no changes made".format(new_file, old_path))
                         else:
-                            print ("WARNING: File {} is not newer than {}, no changes made".format(new_file, old_path))
+                            print ("WARNING: File {} is not newer than {}, file still replaced, however".format(new_file, old_path))
+                            print (old_path)
+                            print (new_path)
+                            os.remove(old_path)
+                            copy(new_path, directory)
                         print ("------------------------------------------------")
 
 
 # For testing purposes
 ################################################################################
 
+def get_date(filename):
+    try:
+        time_stamp = int(filename[-19:-5])
+        return time_stamp
+    except ValueError:
+        return False
+
 def check_filename(new_file, input_directory, dest_directory):
     """
     Uses the dictionary filename_to_ev to move the newest iteration of a files
     into the appropriate pandeia directory
     """
+    if get_date(new_file) == False:
+        print ("Time stamp not present in filename of {}".format(new_file))
+        return False
     checker = False
     for k,v in jwst_update_dict.filename_to_ev.iteritems():
         if re.search(k,new_file) != None:
@@ -74,18 +92,23 @@ def check_filename(new_file, input_directory, dest_directory):
                     old_hdu = fits.open(old_path)
                     new_path = input_directory + new_file
                     new_hdu = fits.open(new_path)
-                    print ("New file date: {}; old file date: {}".format(new_hdu[0].header["DATE"], old_hdu[0].header["DATE"]))
-                    if new_hdu[0].header["DATE"] > old_hdu[0].header["DATE"]:
+                    #print ("New file date: {}; old file date: {}".format(new_hdu[0].header["DATE"], old_hdu[0].header["DATE"]))
+                    #if new_hdu[0].header["DATE"] > old_hdu[0].header["DATE"]:
+                    if get_date(new_file) > get_date(filename):
                         print ("File {} was moved to the Pandeia directory".format(new_file))
-                        print (old_path)
-                        print (new_path)
+                        # print (old_path)
+                        # print (new_path)
                         os.remove(old_path)
                         copy(new_path, jwst_update_dict.file_to_pandeia[k])
                         pass
-                    elif new_hdu[0].header["DATE"] == old_hdu[0].header["DATE"]:
-                        print ("WARNING: File {} has the same DATE as {}, no changes made".format(new_file, old_path))
+                    #elif new_hdu[0].header["DATE"] == old_hdu[0].header["DATE"]:
+                    #    print ("WARNING: File {} has the same DATE as {}, no changes made".format(new_file, old_path))
                     else:
-                        print ("WARNING: File {} is not newer than {}, no changes made".format(new_file, old_path))
+                        print ("WARNING: File {} is not newer than {}, file still replaced, however".format(new_file, old_path))
+                        # print (old_path)
+                        # print (new_path)
+                        os.remove(old_path)
+                        copy(new_path, directory)
                     print ("---------------------------------------------------------------")
 
     if not checker:
